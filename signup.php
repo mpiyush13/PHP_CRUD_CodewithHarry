@@ -1,7 +1,7 @@
 <?php
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
-$login=false;
+$inserted=false;
 $error=false;
 // require('dbConnection.php');
  if ($_SERVER["REQUEST_METHOD"] == "POST")
@@ -10,37 +10,38 @@ $error=false;
     require('dbConnection.php');
    $username=$_POST['username'];
    $password=$_POST['password'];
+    $cpassword=$_POST['cpassword'];
 
-
-
-   $sql = "SELECT sno, username, passwords FROM users WHERE username='$username'";
+    if($password==$cpassword)
+    {
+    $sql = "SELECT sno, username, passwords FROM users WHERE username='$username' ";
    $result = $conn->query($sql);
    
-   if ($result->num_rows==1) {
+   if ($result->num_rows>0) {
 
-    while($row = $result->fetch_assoc()) {
-        // echo "id: " . $row["id"]. " - Name: " . $row["firstname"]. " " . $row["lastname"]. "<br>";
-     if(password_verify($password,$row["passwords"]))
-     {
-        $login=true;
-        session_start();
-     $_SESSION['username'] = $username;
-     $_SESSION['loggedin'] = true;
-     header("location:/Php_Test/index.php"); 
-     }else{
-        $error="Invalid Credentials";
-     }
-    
-    }
-    
-    
+     $error="Username already exist";
 
- }else{
-    
-    $error=true;
- }
+   }else{
 
+    $hash=password_hash($password,PASSWORD_DEFAULT);
+    $sql = "INSERT INTO users (username, passwords)
+VALUES ('$username', '$hash')";
+
+if ($conn->query($sql) === TRUE) {
+  $inserted=true;
+} else {
+  echo "Error: " . $sql . "<br>" . $conn->error;
 }
+
+   }
+    }else
+    {
+        $error="Password Not matched";
+    }
+
+
+   
+ }
 ?>
 
 <!doctype html>
@@ -57,10 +58,10 @@ $error=false;
   </head>
   <body>
     <?php require('./partial/navbar.php');  
-     if($login)
+     if($inserted)
      {
        echo ' <div class="alert alert-success alert-dismissible fade show" role="alert">
-  <strong>Success!</strong> You are loggedin.
+  <strong>Success!</strong> You are Register successfully.
   <button type="button" class="close" data-dismiss="alert" aria-label="Close">
     <span aria-hidden="true">&times;</span>
   </button>
@@ -69,7 +70,7 @@ $error=false;
      if($error)
      {
        echo ' <div class="alert alert-danger alert-dismissible fade show" role="alert">
-  <strong>Error!</strong> Invalid credintials.
+  <strong>Error!</strong> '.$error.'.
   <button type="button" class="close" data-dismiss="alert" aria-label="Close">
     <span aria-hidden="true">&times;</span>
   </button>
@@ -79,9 +80,9 @@ $error=false;
 
     <div class="container">
 
-    <h2>Login Here</h2>
+    <h2>Register Here</h2>
 
-    <form action="/Php_Test/login.php" method="post">
+    <form action="/Php_Test/signup.php" method="post">
   <div class="form-group">
     <label for="username">Username</label>
     <input type="email" class="form-control" id="username" name="username" aria-describedby="emailHelp" placeholder="Enter username">
@@ -91,7 +92,10 @@ $error=false;
     <label for="password">Password</label>
     <input type="password" class="form-control" id="password" name="password" placeholder="Password">
   </div>
-  
+  <div class="form-group">
+    <label for="cpassword">Confirm Password</label>
+    <input type="password" class="form-control" id="cpassword" name="cpassword" placeholder="Password">
+  </div>
   
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
